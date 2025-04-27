@@ -10,7 +10,7 @@ logger = get_module_logger("get_library")
 
 def get_libraries():
     """
-    获取Jellyfin的媒体库列表
+    获取Jellyfin的媒体库列表，并排除配置中指定的媒体库
 
     Returns:
         list: 包含媒体库信息的字典列表，每个字典包含'Id'和'Name'
@@ -36,7 +36,11 @@ def get_libraries():
         if "Items" in data:
             for item in data["Items"]:
                 if "Id" in item and "Name" in item:
-                    libraries.append({"Id": item["Id"], "Name": item["Name"]})
+                    # 排除在EXCLUDE_LIBRARY列表中的媒体库
+                    if item["Name"] not in config.EXCLUDE_LIBRARY:
+                        libraries.append({"Id": item["Id"], "Name": item["Name"]})
+                    else:
+                        logger.info(f"已排除媒体库: {item['Name']}")
 
         return libraries
     except requests.exceptions.RequestException as e:

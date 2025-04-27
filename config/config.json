@@ -3,29 +3,36 @@
     {
       "server_name": "MyJellyfin",
       "server_type": "jellyfin",
-      "base_url": "http://192.168.2.210:8096",
+      "base_url": "http://192.168.2.211:8096",
       "user_name": "user_name",
       "password": "password",
       "update_poster": false
     }
   ],
   "cron": "0 1 * * *",
-  "exclude_update_library": ["Short", "Playlists", "合集"],
+  "exclude_update_library": [
+    "Short",
+    "Playlists",
+    "合集"
+  ],
   "template_mapping": [
     {
       "library_name": "Anime",
       "library_ch_name": "动漫",
-      "library_eng_name": "ANIME"
+      "library_eng_name": "ANIME",
+      "poster_sort": "DateLastContentAdded"
     },
     {
       "library_name": "Classic TV",
       "library_ch_name": "电视剧",
-      "library_eng_name": "TV"
+      "library_eng_name": "TV",
+      "poster_sort": "Random"
     },
     {
       "library_name": "Movie",
       "library_ch_name": "电影",
-      "library_eng_name": "MOVIE"
+      "library_eng_name": "MOVIE",
+      "poster_sort": "DateCreated"
     },
     {
       "library_name": "Documentary",
@@ -45,7 +52,8 @@
     {
       "library_name": "Hot TV",
       "library_ch_name": "正在热播",
-      "library_eng_name": "HOT TV"
+      "library_eng_name": "HOT TV",
+      "poster_sort": "DateLastContentAdded"
     },
     {
       "library_name": "Short",

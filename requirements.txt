@@ -1,4 +1,4 @@
-requests==2.31.0
-beautifulsoup4==4.12.2
-Pillow==10.2.0
+requests==2.32.3
+beautifulsoup4==4.13.4
+Pillow==11.2.1
 croniter==6.0.0

@@ -540,6 +540,92 @@ def create_gradient_background(width, height, color1=None, color2=None):
 
     return gradient
 
+def get_poster_primary_color(image_path):
+    """
+    分析图片并提取主色调
+    
+    参数:
+        image_path: 图片文件路径
+        
+    返回:
+        主色调颜色，RGBA格式
+    """
+    try:
+        from collections import Counter
+        
+        # 打开图片
+        img = Image.open(image_path)
+        
+        # 缩小图片尺寸以加快处理速度
+        img = img.resize((100, 150), Image.LANCZOS)
+        
+        # 确保图片为RGBA模式
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+            
+        # 获取图片中心部分的像素数据（避免边框和角落）
+        # width, height = img.size
+        # center_x1 = int(width * 0.2)
+        # center_y1 = int(height * 0.2)
+        # center_x2 = int(width * 0.8)
+        # center_y2 = int(height * 0.8)
+        
+        # # 裁剪出中心区域
+        # center_img = img.crop((center_x1, center_y1, center_x2, center_y2))
+
+        # 获取所有像素
+        pixels = list(img.getdata())
+        
+        # 过滤掉接近黑色和白色的像素，以及透明度低的像素
+        filtered_pixels = []
+        for pixel in pixels:
+            r, g, b, a = pixel
+            
+            # 跳过透明度低的像素
+            if a < 200:
+                continue
+                
+            # 计算亮度
+            brightness = (r + g + b) / 3
+            
+            # 跳过过暗或过亮的像素
+            if brightness < 30 or brightness > 220:
+                continue
+                
+            # 添加到过滤后的列表
+            filtered_pixels.append((r, g, b, 255))
+            
+        # 如果过滤后没有像素，使用全部像素
+        if not filtered_pixels:
+            filtered_pixels = [(p[0], p[1], p[2], 255) for p in pixels if p[3] > 100]
+            
+        # 如果仍然没有像素，返回默认颜色
+        if not filtered_pixels:
+            return (150, 100, 50, 255)
+            
+        # 使用Counter找到出现最多的颜色
+        color_counter = Counter(filtered_pixels)
+        common_colors = color_counter.most_common(5)
+        
+        # 如果找到了颜色，返回最常见的颜色
+        if common_colors:
+            # result=   create_gradient_background(width=1920, height=1080, color1=common_colors[0][0], color2=common_colors[1][0])
+            # result.save(config.CURRENT_DIR  +"\\poster\\out.png", "PNG")
+            return common_colors[0][0],common_colors[1][0],
+
+        
+        # 如果无法找到主色调，使用平均值
+        r_avg = sum(p[0] for p in filtered_pixels) // len(filtered_pixels)
+        g_avg = sum(p[1] for p in filtered_pixels) // len(filtered_pixels)
+        b_avg = sum(p[2] for p in filtered_pixels) // len(filtered_pixels)
+        
+        return(r_avg, g_avg, b_avg, 255)
+     
+        
+    except Exception as e:
+        logger.error(f"获取图片主色调时出错: {e}")
+        # 返回默认颜色作为备选
+        return (150, 100, 50, 255)
 
 def gen_poster_workflow(name):
     """
@@ -553,6 +639,7 @@ def gen_poster_workflow(name):
         )
         logger.info("-" * 40)
         poster_folder = os.path.join(config.POSTER_FOLDER, name)
+        first_image_path = os.path.join(poster_folder, "2.jpg")
         output_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.png")
         rows = config.POSTER_GEN_CONFIG["ROWS"]
         cols = config.POSTER_GEN_CONFIG["COLS"]
@@ -567,12 +654,10 @@ def gen_poster_workflow(name):
         # 定义模板尺寸（可以根据需要调整）
         template_width = 1920  # 或者从配置中获取
         template_height = 1080  # 或者从配置中获取
-
+        color1,color2=  get_poster_primary_color(first_image_path)
         # 创建渐变背景作为模板
-        gradient_bg = create_gradient_background(template_width, template_height)
+        gradient_bg = create_gradient_background(template_width, template_height,color1,color2)
 
-        # 以渐变背景作为起点
-        result = gradient_bg.copy()
 
         # 创建保存中间文件的文件夹
         output_dir = os.path.dirname(output_path)
@@ -623,6 +708,8 @@ def gen_poster_workflow(name):
             poster_files[i : i + rows] for i in range(0, len(poster_files), rows)
         ]
 
+        # 以渐变背景作为起点
+        result = gradient_bg.copy()
         # 处理每一组（每一列）图片
         for col_index, column_posters in enumerate(grouped_posters):
             if col_index >= cols:
@@ -876,4 +963,4 @@ def gen_poster_workflow(name):
 
 
 if __name__ == "__main__":
-    gen_poster_workflow("Anime")
+    get_poster_primary_color(config.CURRENT_DIR  +"\\poster\\Hot TV\\1.jpg")

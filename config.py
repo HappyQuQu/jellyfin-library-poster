@@ -16,33 +16,6 @@ try:
     logger.info(f"成功加载配置文件: {CONFIG_JSON_PATH}")
 except (FileNotFoundError, json.JSONDecodeError) as e:
     logger.error(f"无法加载配置文件 config.json: {e}")
-    logger.warning("使用默认配置")
-    JSON_CONFIG = {
-        "jellyfin": [
-            {
-                "server_name": "MyJellyfin",
-                "server_type": "jellyfin",
-                "base_url": "http://192.168.2.210:8096",
-                "user_name": "user_name",
-                "password": "password",
-                "update_poster": False,
-            }
-        ],
-        "cron": "0 1 * * *",
-        "exclude_update_library": ["Short", "Playlists", "合集"],
-        "template_mapping": [
-            {
-                "library_name": "Anime",
-                "library_ch_name": "动漫",
-                "library_eng_name": "ANIME",
-            },
-            {
-                "library_name": "Classic TV",
-                "library_ch_name": "电视剧",
-                "library_eng_name": "TV",
-            },
-        ],
-    }
 
 
 # 文件路径配置
@@ -90,20 +63,7 @@ else:
         ),  # 是否更新海报
     }
     JELLYFIN_CONFIGS = [JELLYFIN_CONFIG]
-# Jellyfin 配置
-# JELLYFIN_CONFIG = {
-#     "BASE_URL": JSON_CONFIG["jellyfin"]["base_url"],  # 从JSON配置获取Jellyfin服务地址
-#     "USER_NAME": JSON_CONFIG["jellyfin"]["user_name"],  # 用户名
-#     "PASSWORD": JSON_CONFIG["jellyfin"]["password"],  # 密码
-#     "AUTHORIZATION": 'MediaBrowser Client="other", Device="client", DeviceId="123", Version="0.0.0"',  # 是否需要认证
-#     "ACCESS_TOKEN": "",  # API密钥
-#     "USER_ID": "",  # 用户ID
-#     "IMAGE_TYPE": "Primary",  # 图片类型
-#     "IMAGE_PATH": "poster.png",  # 图片文件名
-#     "UPDATE_POSTER": JSON_CONFIG["jellyfin"].get(
-#         "update_poster", False
-#     ),  # 是否更新海报
-# }
+
 JELLYFIN_CONFIG = {
     "SERVER_NAME": "",  # 服务器名称
     "SERVER_TYPE": "",
