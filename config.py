@@ -86,6 +86,13 @@ EXCLUDE_LIBRARY = JSON_CONFIG["exclude_update_library"]  # 排除更新的媒体
 
 TEMPLATE_MAPPING = JSON_CONFIG["template_mapping"]
 
+
+STYLE_CONFIGS = JSON_CONFIG.get("style_config", [{
+    "style_name": "style1",
+    "style_ch_font": "ch.ttf",
+    "style_eng_font": "en.otf"
+}])  # 获取样式配置
+
 # 海报生成配置
 POSTER_GEN_CONFIG = {
     "ROWS": 3,  # 每列图片数

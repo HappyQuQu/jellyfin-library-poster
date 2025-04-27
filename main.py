@@ -51,8 +51,6 @@ def process_libraries():
             logger.info(
                 f"[{jellyfin_config['SERVER_NAME']}] 开始处理媒体库: {current_library} (ID: {library['Id']})"
             )
-            # if current_library != "Hot Movie":
-            #     continue
             # 2. 下载海报
             success, count = download_posters_workflow(library["Id"], current_library)
             if not success:

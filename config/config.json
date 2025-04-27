@@ -3,17 +3,26 @@
     {
       "server_name": "MyJellyfin",
       "server_type": "jellyfin",
-      "base_url": "http://192.168.2.211:8096",
-      "user_name": "user_name",
-      "password": "password",
+      "base_url": "http://192.168.2.211:8089",
+      "user_name": "user",
+      "password": "pass",
+      "update_poster": false
+    },
+    {
+      "base_url": "http://192.168.2.232:8089",
+      "user_name": "user",
+      "password": "pass",
       "update_poster": false
     }
   ],
   "cron": "0 1 * * *",
-  "exclude_update_library": [
-    "Short",
-    "Playlists",
-    "合集"
+  "exclude_update_library": ["Short", "Playlists", "合集"],
+  "style_config": [
+    {
+      "style_name": "style1",
+      "style_ch_font": "字体名带后缀",
+      "style_eng_font": "字体名带后缀"
+    }
   ],
   "template_mapping": [
     {

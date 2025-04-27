@@ -1,5 +1,6 @@
 # 使用官方 Python 基础镜像
-FROM python:3.12-slim-bookworm
+FROM python:3.13.3-slim-bookworm
+
 
 # 设置代理环境变量（构建时使用）
 ARG HTTP_PROXY
@@ -17,7 +18,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /app
 
 # 创建必要的目录结构
-RUN mkdir -p /app/poster /app/output /app/font
+RUN mkdir -p /app/poster /app/output /app/font /app/myfont
 
 # 复制主要Python文件
 COPY *.py /app/

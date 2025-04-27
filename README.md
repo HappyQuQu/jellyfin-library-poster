@@ -1,7 +1,33 @@
 # jellyfin-library-poster
 
-jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间就随机)生成媒体库封面并且上传更新
+jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间就随机),定时生成媒体库封面并且上传更新
+
 不会 python 随便写的
+
+## 最近更新
+
+### 📅 更新日期
+
+- 2025-04-27
+
+### 📌 重点提醒
+
+- 背景图基于媒体库第一张海报提取主题色,提取最多 10 个常见颜色
+- 通过 HSL 颜色空间判断颜色是否适合做背景
+- 如果颜色过暗或过亮，会被跳过并尝试下一个颜色
+- 如果所有提取的颜色都不合适，系统会随机生成一个 HSL 颜色
+- 随机颜色会控制在合适的色相、饱和度和明度范围内
+- 创建从左到右的渐变遮罩，左侧深色到右侧浅色的渐变，为前置的电影海报提供良好的衬托
+
+### ✨ 新增功能
+
+- 支持媒体海报根据不同规则排序,详情查看`template_mapping 节点媒体库模板映射`
+- 支持自定义字体,详情查看`style_config 节点字体映射`
+- 优化媒体库海报背景图，提升整体明亮度,调整背景图生成逻辑,详见`重点提醒`
+
+### 🐞 问题修复
+
+无
 
 ## 使用说明
 
@@ -14,16 +40,19 @@ docker run \
   -v "./poster:/app/poster" \
   -v "./output:/app/output" \
   -v "./output:/app/logs" \
+  -v "./myfont:/app/myfont"
   evanqu/jellyfin-library-poster:latest
 ```
 
-`/app/config` 存放 config.json
+`/app/config` 存放 `config.json`,新建一个 `config.json` 文件,然后复制参考示例得内容,然后修改成自己的配置保存到这个 `config.json` 中
 
 `/app/poster` 存放下载得海报(可选)
 
 `/app/output` 存放生成的媒体库封面(可选)
 
 `/app/logs` 存放日志(可选)
+
+`/app/myfont` 存放自定义字体文件(可选,须调整配置文件)
 
 ### docker-compose 运行
 
@@ -39,6 +68,7 @@ services:
       - ./poster:/app/poster
       - ./output:/app/output
       - ./logs:/app/logs
+      - ./myfont:/app/myfont
 ```
 
 ```
@@ -47,8 +77,9 @@ docker-compose down && docker-compose pull && docker-compose up -d
 
 ### 源码运行
 
-```
+python 版本: `3.13.3`
 
+```
 pip install -r requirements.txt
 python main.py
 
@@ -58,7 +89,96 @@ python main.py
 
 `config.json` 是项目的配置文件，用于设置 Jellyfin 服务器连接信息和媒体库海报生成的规则。
 
-### 1. Jellyfin/Emby 服务器配置
+### 注意事项
+
+1. 请确保 `base_url`、`user_name` 和 `password` 配置正确
+2. `exclude_update_library` 中列出的媒体库将不会被自动更新海报
+3. json 对文件有格式约束,如果出现没有加载到自己改的 json 配置,可以把自己得 json 内容复制到[JSON 在线解析格式化验证](https://www.json.cn)网站上看下是否有格式错误
+
+### 完整配置参考
+
+```json
+{
+  "jellyfin": [
+    {
+      "server_name": "MyJellyfin",
+      "server_type": "jellyfin",
+      "base_url": "http://192.168.2.211:8089",
+      "user_name": "user",
+      "password": "pass",
+      "update_poster": false
+    },
+    {
+      "base_url": "http://192.168.2.232:8089",
+      "user_name": "user",
+      "password": "pass",
+      "update_poster": false
+    }
+  ],
+  "cron": "0 1 * * *",
+  "exclude_update_library": ["Short", "Playlists", "合集"],
+  "style_config": [
+    {
+      "style_name": "style1",
+      "style_ch_font": "字体名带后缀",
+      "style_eng_font": "字体名带后缀"
+    }
+  ],
+  "template_mapping": [
+    {
+      "library_name": "Anime",
+      "library_ch_name": "动漫",
+      "library_eng_name": "ANIME",
+      "poster_sort": "DateLastContentAdded"
+    },
+    {
+      "library_name": "Classic TV",
+      "library_ch_name": "电视剧",
+      "library_eng_name": "TV",
+      "poster_sort": "Random"
+    },
+    {
+      "library_name": "Movie",
+      "library_ch_name": "电影",
+      "library_eng_name": "MOVIE",
+      "poster_sort": "DateCreated"
+    },
+    {
+      "library_name": "Documentary",
+      "library_ch_name": "纪录片",
+      "library_eng_name": "DOC"
+    },
+    {
+      "library_name": "合集",
+      "library_ch_name": "合集",
+      "library_eng_name": "COLLECTIONS"
+    },
+    {
+      "library_name": "Hot Movie",
+      "library_ch_name": "正在热映",
+      "library_eng_name": "HOT MOVIE"
+    },
+    {
+      "library_name": "Hot TV",
+      "library_ch_name": "正在热播",
+      "library_eng_name": "HOT TV",
+      "poster_sort": "DateLastContentAdded"
+    },
+    {
+      "library_name": "Short",
+      "library_ch_name": "短剧",
+      "library_eng_name": "SHORT"
+    },
+    {
+      "library_name": "TEST TV",
+      "library_ch_name": "测试电视",
+      "library_eng_name": "TEST TV"
+    }
+  ]
+}
+```
+
+### `jellyfin`节点 Jellyfin/Emby 服务器配置
 
 ```json
 "jellyfin": [
@@ -84,30 +204,16 @@ python main.py
 - 支持多服务器配置
 - "jellyfin"的节点不要改,就算你是`emby`的也是`jellyfin`
 
-### 2. 排除更新的媒体库
+| 字段名        | 说明                                                                                                                     | 必填 | 默认值 |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ | ---- | ------ |
+| server_name   | Jellyfin/Emby 服务器名称                                                                                                 | 是   | -      |
+| server_type   | Jellyfin/Emby 服务器类型(`jellyfin`/`emby`)                                                                              | 是   | -      |
+| base_url      | Jellyfin/Emby 服务器地址                                                                                                 | 是   | -      |
+| user_name     | Jellyfin/Emby 用户名                                                                                                     | 是   | -      |
+| password      | Jellyfin/Emby 用户密码                                                                                                   | 是   | -      |
+| update_poster | 是否自动上传更新媒体库海报到服务器(会覆盖服务器上原有的媒体库海报,建议先 false,看实际生成效果满意改成 true,重新运行一遍) | 否   | false  |
 
-```json
-"exclude_Update_library": ["Short", "Playlists", "合集"]
-```
-
-此数组列出不需要自动更新海报的媒体库名称。
-
-### 3. 媒体库模板映射
-
-```json
-"template_mapping": [
-  {
-    "library_name": "Movie",             // Jellyfin 中的媒体库名称
-    "library_ch_name": "电影",            // 海报的中文名称（用于海报显示）
-    "library_eng_name": "MOVIE"          // 海报的英文名称（用于海报显示）
-  },
-  // 更多媒体库配置...
-]
-```
-
-系统会根据这些映射为每个媒体库创建包含相应名称的自定义海报。
-
-### 4. 定时任务
+### `cron`节点 定时任务
 
 ```json
 "cron": "0 1 * * *",
@@ -125,79 +231,97 @@ python main.py
 
 更多 Cron 表达式的用法可以参考相关文档。
 
-### 完成配置
+### `exclude_update_library`节点 排除更新的媒体库
 
 ```json
-{
-  "jellyfin": [
-    {
-      "server_name": "MyJellyfin",
-      "server_type": "jellyfin",
-      "base_url": "http://192.168.2.210:8096",
-      "user_name": "user_name",
-      "password": "password",
-      "update_poster": false
-    }
-  ],
-  "cron": "0 1 * * *",
-  "exclude_update_library": ["Short", "Playlists", "合集"],
-  "template_mapping": [
-    {
-      "library_name": "Anime",
-      "library_ch_name": "动漫",
-      "library_eng_name": "ANIME"
-    },
-    {
-      "library_name": "Classic TV",
-      "library_ch_name": "电视剧",
-      "library_eng_name": "TV"
-    },
-    {
-      "library_name": "Movie",
-      "library_ch_name": "电影",
-      "library_eng_name": "MOVIE"
-    },
-    {
-      "library_name": "Documentary",
-      "library_ch_name": "纪录片",
-      "library_eng_name": "DOC"
-    },
-    {
-      "library_name": "合集",
-      "library_ch_name": "合集",
-      "library_eng_name": "COLLECTIONS"
-    },
-    {
-      "library_name": "Hot Movie",
-      "library_ch_name": "正在热映",
-      "library_eng_name": "HOT MOVIE"
-    },
-    {
-      "library_name": "Hot TV",
-      "library_ch_name": "正在热播",
-      "library_eng_name": "HOT TV"
-    },
-    {
-      "library_name": "Short",
-      "library_ch_name": "短剧",
-      "library_eng_name": "SHORT"
-    },
-    {
-      "library_name": "TEST TV",
-      "library_ch_name": "测试电视",
-      "library_eng_name": "TEST TV"
-    }
-  ]
-}
+"exclude_Update_library": ["Short", "Playlists", "合集"]
 ```
 
-### 注意事项
+此数组列出不需要自动更新海报的媒体库名称。
 
-1. 请确保 `base_url`、`user_name` 和 `password` 配置正确
-2. `exclude_update_library` 中列出的媒体库将不会被自动更新海报
+### `style_config`节点 海报样式配置
+
+```json
+  "style_config": [
+    {
+      "style_name": "style1",
+      "style_ch_font": "字体名带后缀",
+      "style_eng_font": "字体名带后缀"
+    }
+  ],
+```
+
+目前只有一种海报风格所以`style_name`为`style1`
+
+| 字段名         | 说明                                       | 必填 | 默认值 |
+| -------------- | ------------------------------------------ | ---- | ------ |
+| style_name     | 海报样式名称,固定值`style1`                | 是   | style1 |
+| style_ch_font  | 海报中文字体名称,名称带后缀如 微软雅黑.ttf | 是   | -      |
+| style_eng_font | 海报英文字体名称,名称带后缀如 微软雅黑.ttf | 是   | -      |
+
+### `template_mapping` 媒体库模板映射
+
+```json
+"template_mapping": [
+  {
+    "library_name": "Movie",             // Jellyfin 中的媒体库名称
+    "library_ch_name": "电影",            // 海报的中文名称（用于海报显示）
+    "library_eng_name": "MOVIE",
+    "poster_sort": "DateLastContentAdded"
+
+  },
+  // 更多媒体库配置...
+]
+```
+
+| 字段名           | 说明                           | 必填 | 默认值 |
+| ---------------- | ------------------------------ | ---- | ------ |
+| library_name     | Jellyfin 中的媒体库名称        | 是   | -      |
+| library_ch_name  | 海报的中文名称（用于海报显示） | 是   | -      |
+| library_eng_name | 海报的英文名称（用于海报显示） | 是   | -      |
+| poster_sort      | 海报的排序方式                 | 否   | -      |
+
+`poster_sort`参数列表
+非必填,默认`DateCreated`,这里只列出部分,其他参数可以再媒体库点击媒体库的排序方式,然后查看 url 里面 `sortBy=xxx` 参数
+
+| 参数代码             | 参数说明           |
+| -------------------- | ------------------ |
+| DateCreated          | 按创建时间排序     |
+| DateLastContentAdded | 按最后添加内容排序 |
+| Random               | 随机排序           |
+| SortName             | 按名称排序         |
+| SeriesDatePlayed     | 按系列播放日期排序 |
+| PremiereDate         | 按首映日期排序     |
+
+系统会根据这些映射为每个媒体库创建包含相应名称的自定义海报。
 
 ## 效果图
 
-![](./screenshot/2.png)
+### 运行日志
 
 ![](./screenshot/1.png)
+
+### 海报示例
+
+![](./screenshot/Anime.png)
+![](./screenshot/ClassicTV.png)
+![](./screenshot/Documentary.png)
+![](./screenshot/HotMovie.png)
+![](./screenshot/HotTV.png)
+![](./screenshot/Movie.png)
+
+## 历史更新
+
+### 📅 更新日期
+
+- 2025-04-27
+
+### ✨ 新增功能
+
+- 支持媒体海报根据不同规则排序,详情查看`template_mapping 节点媒体库模板映射`
+- 支持自定义字体,详情查看`style_config 节点字体映射`
+- 优化媒体库海报背景图，提升整体明亮度,调整背景图生成逻辑,详见`重点提醒`
+
+### 🐞 问题修复
+
+- 无

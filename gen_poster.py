@@ -4,6 +4,7 @@ import math
 import config
 import random  # 添加随机模块
 from logger import get_module_logger
+import colorsys
 
 # 获取模块日志记录器
 logger = get_module_logger("gen_poster")
@@ -50,7 +51,7 @@ def add_shadow(img, offset=(5, 5), shadow_color=(0, 0, 0, 100), blur_radius=3):
 
 
 def draw_text_on_image(
-    image, text, position, font_path, font_size, fill_color=(255, 255, 255, 255)
+    image, text, position, font_path,default_font_path, font_size, fill_color=(255, 255, 255, 255)
 ):
     """
     在图像上绘制文字
@@ -70,6 +71,9 @@ def draw_text_on_image(
     img_copy = image.copy()
     draw = ImageDraw.Draw(img_copy)
     font_path = os.path.join(config.CURRENT_DIR, font_path)
+    if not os.path.exists(font_path):
+        logger.warning(f"自定义字体不存在:{font_path}，使用默认字体")
+        font_path = os.path.join(config.CURRENT_DIR, "font", default_font_path)
     font = ImageFont.truetype(font_path, font_size)
     # 绘制文字
     draw.text(position, text, font=font, fill=fill_color)
@@ -82,6 +86,7 @@ def draw_multiline_text_on_image(
     text,
     position,
     font_path,
+    default_font_path,
     font_size,
     line_spacing=10,
     fill_color=(255, 255, 255, 255),
@@ -105,6 +110,9 @@ def draw_multiline_text_on_image(
     img_copy = image.copy()
     draw = ImageDraw.Draw(img_copy)
     font_path = os.path.join(config.CURRENT_DIR, font_path)
+    if not os.path.exists(font_path):
+        logger.warning(f"自定义字体不存在:{font_path}，使用默认字体")
+        font_path = os.path.join(config.CURRENT_DIR, "font", default_font_path)
     font = ImageFont.truetype(font_path, font_size)
 
     # 按空格分割文本
@@ -192,353 +200,165 @@ def draw_color_block(image, position, size, color):
     return img_copy
 
 
-def create_gradient_background(width, height, color1=None, color2=None):
+def create_gradient_background(width, height, name,color=None):
     """
-    创建一个从左到右、由深到浅的渐变背景
-    增加多种色系选择，大幅提高颜色组合数量
-
+    创建一个从左到右的渐变背景，使用遮罩技术实现渐变效果
+    左侧颜色更深，右侧颜色适中，提供更明显的渐变效果
+    
     参数:
         width: 背景宽度
         height: 背景高度
-        color1: 左侧颜色(深色)，如果为None则随机生成
-        color2: 右侧颜色(浅色)，如果为None则随机生成
-
+        color: 颜色数组或单个颜色，如果为None则随机生成
+              如果是数组，会依次尝试每个颜色，跳过太黑或太淡的颜色
+        
     返回:
         渐变背景图像
     """
-    # 如果没有指定颜色，随机生成一组深浅颜色
-    if color1 is None:
-        # 选择色系类型 (0-25 共26种不同颜色)
-        color_type = random.randint(0, 25)
+    def normalize_rgb(input_rgb):
+        """
+        将各种可能的输入格式，统一提取成 (r, g, b) 三元组。
+        支持：
+        - (r, g, b)
+        - (r, g, b, a)
+        - ((r, g, b), idx) or ((r, g, b, a), idx)
+        """
+        if isinstance(input_rgb, tuple):
+            # 情况 3: ((r,g,b,a), idx) 或 ((r,g,b), idx)
+            if len(input_rgb) == 2 and isinstance(input_rgb[0], tuple):
+                return normalize_rgb(input_rgb[0])
+            # 情况 2: RGBA
+            if len(input_rgb) == 4 and all(isinstance(v, (int, float)) for v in input_rgb):
+                return input_rgb[:3]
+            # 情况 1: RGB
+            if len(input_rgb) == 3 and all(isinstance(v, (int, float)) for v in input_rgb):
+                return input_rgb
+        raise ValueError(f"无法识别的颜色格式: {input_rgb!r}")
 
-        # 基础颜色组 (6种原有颜色)
-        if color_type == 0:  # 偏红色
-            color1 = (
-                random.randint(80, 150),  # R - 较高
-                random.randint(20, 70),  # G - 较低
-                random.randint(20, 70),  # B - 较低
-            )
-        elif color_type == 1:  # 偏橙色
-            color1 = (
-                random.randint(80, 150),  # R - 较高
-                random.randint(50, 100),  # G - 中等
-                random.randint(20, 50),  # B - 较低
-            )
-        elif color_type == 2:  # 偏黄色
-            color1 = (
-                random.randint(80, 150),  # R - 较高
-                random.randint(70, 140),  # G - 较高
-                random.randint(20, 50),  # B - 较低
-            )
-        elif color_type == 3:  # 偏绿色
-            color1 = (
-                random.randint(20, 70),  # R - 较低
-                random.randint(80, 150),  # G - 较高
-                random.randint(40, 90),  # B - 中等
-            )
-        elif color_type == 4:  # 偏蓝色
-            color1 = (
-                random.randint(20, 70),  # R - 较低
-                random.randint(50, 100),  # G - 中等
-                random.randint(80, 150),  # B - 较高
-            )
-        elif color_type == 5:  # 偏紫色
-            color1 = (
-                random.randint(60, 120),  # R - 中等
-                random.randint(20, 80),  # G - 较低
-                random.randint(80, 150),  # B - 较高
-            )
+    def is_mid_bright(input_rgb, min_lum=80, max_lum=200):
+        """
+        基于相对亮度判断：不过暗（>=min_lum）也不过白（<=max_lum）。
+        input_rgb 可为多种格式，函数内部会 normalize。
+        """
+        r, g, b = normalize_rgb(input_rgb)
+        lum = 0.299*r + 0.587*g + 0.114*b
+        return min_lum <= lum <= max_lum
+    # 定义用于判断颜色是否合适的函数
+    def is_mid_bright_hsl(input_rgb, min_l=0.3, max_l=0.7):
+        """
+        基于 HSL Lightness 判断。Lightness 在 [0,1]。
+        """
+        r, g, b = normalize_rgb(input_rgb)
+        # 归一到 [0,1]
+        r1, g1, b1 = r/255.0, g/255.0, b/255.0
+        h, l, s = colorsys.rgb_to_hls(r1, g1, b1)
+        return min_l <= l <= max_l
+    
+    selected_color = None
+    
+    # 如果传入的是颜色数组
+    if isinstance(color, list) and len(color) > 0:
+        # 尝试找到合适的颜色，最多尝试5个
+        for i in range(min(10, len(color))):
+            if is_mid_bright_hsl(color[i]):
+                # 如果是(color_tuple, count)格式，提取颜色元组
+                if isinstance(color[i], tuple) and len(color[i]) == 2 and isinstance(color[i][0], tuple):
+                    selected_color = color[i][0]
+                else:
+                    selected_color = color[i]
+                logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报主题色:[{selected_color}]适合做背景")
+                break
+            else:
+                logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报主题色:[{color[i]}]不适合做背景,尝试做下一个颜色")
+    
+    # 如果没有找到合适的颜色，随机生成一个颜色
+    if selected_color is None:
 
-        # 新增颜色组 (20种新颜色)
-        elif color_type == 6:  # 深红色
-            color1 = (
-                random.randint(60, 100),  # R - 中等偏暗
-                random.randint(10, 30),  # G - 很低
-                random.randint(10, 30),  # B - 很低
-            )
-        elif color_type == 7:  # 酒红色
-            color1 = (
-                random.randint(70, 120),  # R - 中等
-                random.randint(10, 40),  # G - 很低
-                random.randint(30, 70),  # B - 较低
-            )
-        elif color_type == 8:  # 棕红色
-            color1 = (
-                random.randint(70, 120),  # R - 中等
-                random.randint(30, 70),  # G - 较低
-                random.randint(10, 40),  # B - 很低
-            )
-        elif color_type == 9:  # 深橙色
-            color1 = (
-                random.randint(70, 130),  # R - 中等
-                random.randint(40, 80),  # G - 较低
-                random.randint(0, 30),  # B - 很低
-            )
-        elif color_type == 10:  # 深黄色
-            color1 = (
-                random.randint(70, 130),  # R - 中等
-                random.randint(60, 110),  # G - 中等
-                random.randint(0, 30),  # B - 很低
-            )
-        elif color_type == 11:  # 橄榄绿
-            color1 = (
-                random.randint(50, 100),  # R - 较低
-                random.randint(60, 110),  # G - 中等
-                random.randint(0, 40),  # B - 很低
-            )
-        elif color_type == 12:  # 深绿色
-            color1 = (
-                random.randint(0, 50),  # R - 很低
-                random.randint(60, 110),  # G - 中等
-                random.randint(0, 50),  # B - 很低
-            )
-        elif color_type == 13:  # 森林绿
-            color1 = (
-                random.randint(20, 60),  # R - 很低
-                random.randint(50, 100),  # G - 中等
-                random.randint(30, 80),  # B - 较低
-            )
-        elif color_type == 14:  # 青绿色
-            color1 = (
-                random.randint(0, 50),  # R - 很低
-                random.randint(60, 110),  # G - 中等
-                random.randint(60, 110),  # B - 中等
-            )
-        elif color_type == 15:  # 湖蓝色
-            color1 = (
-                random.randint(0, 50),  # R - 很低
-                random.randint(50, 100),  # G - 中等
-                random.randint(70, 120),  # B - 中等
-            )
-        elif color_type == 16:  # 深蓝色
-            color1 = (
-                random.randint(0, 40),  # R - 很低
-                random.randint(0, 50),  # G - 很低
-                random.randint(70, 120),  # B - 中等
-            )
-        elif color_type == 17:  # 靛蓝色
-            color1 = (
-                random.randint(20, 60),  # R - 很低
-                random.randint(0, 40),  # G - 很低
-                random.randint(70, 130),  # B - 中等
-            )
-        elif color_type == 18:  # 深紫色
-            color1 = (
-                random.randint(40, 90),  # R - 较低
-                random.randint(0, 40),  # G - 很低
-                random.randint(70, 130),  # B - 中等
-            )
-        elif color_type == 19:  # 紫红色
-            color1 = (
-                random.randint(70, 120),  # R - 中等
-                random.randint(0, 40),  # G - 很低
-                random.randint(70, 120),  # B - 中等
-            )
-        elif color_type == 20:  # 灰色
-            gray = random.randint(40, 80)
-            color1 = (gray, gray, gray)  # 均匀灰色
-        elif color_type == 21:  # 暖灰色
-            gray = random.randint(40, 80)
-            color1 = (gray + random.randint(10, 30), gray, gray - random.randint(5, 15))
-        elif color_type == 22:  # 冷灰色
-            gray = random.randint(40, 80)
-            color1 = (gray - random.randint(5, 15), gray, gray + random.randint(10, 30))
-        elif color_type == 23:  # 棕色
-            color1 = (
-                random.randint(60, 100),  # R - 中等
-                random.randint(40, 80),  # G - 较低
-                random.randint(20, 50),  # B - 很低
-            )
-        elif color_type == 24:  # 古铜色
-            color1 = (
-                random.randint(80, 120),  # R - 中等
-                random.randint(60, 100),  # G - 中等
-                random.randint(10, 40),  # B - 很低
-            )
-        else:  # 褐绿色
-            color1 = (
-                random.randint(50, 90),  # R - 较低
-                random.randint(60, 100),  # G - 中等
-                random.randint(30, 70),  # B - 较低
-            )
+        def random_hsl_to_rgb(
+            hue_range=(0, 360),
+            sat_range=(0.5, 1.0),
+            light_range=(0.5, 0.8)
+        ):
+            """
+            hue_range: 色相范围，取值 0~360
+            sat_range: 饱和度范围，取值 0~1
+            light_range: 明度范围，取值 0~1
+            返回值：RGB 三元组，每个通道 0~255
+            """
+            h = random.uniform(hue_range[0]/360.0, hue_range[1]/360.0)
+            s = random.uniform(sat_range[0], sat_range[1])
+            l = random.uniform(light_range[0], light_range[1])
+            # colorsys.hls_to_rgb 接受 H, L, S (注意顺序) 都是 0~1
+            r, g, b = colorsys.hls_to_rgb(h, l, s)
+            # 转回 0~255
+            return (int(r*255), int(g*255), int(b*255))
 
-    if color2 is None:
-        # 选择色系类型 (0-25 共26种不同颜色)
-        # 注意：这里独立选择，允许左右颜色属于不同色系，增加随机性
-        color_type = random.randint(0, 25)
+        # 生成颜色示例
+        selected_color = random_hsl_to_rgb()
+        logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报所有主题色不适合做背景，随机生成一个颜色[{selected_color}]。")
 
-        # 基础颜色组 (6种原有颜色)
-        if color_type == 0:  # 偏红色
-            color2 = (
-                random.randint(180, 255),  # R - 很高
-                random.randint(100, 180),  # G - 中等
-                random.randint(100, 180),  # B - 中等
-            )
-        elif color_type == 1:  # 偏橙色
-            color2 = (
-                random.randint(200, 255),  # R - 很高
-                random.randint(150, 220),  # G - 较高
-                random.randint(70, 150),  # B - 中等
-            )
-        elif color_type == 2:  # 偏黄色
-            color2 = (
-                random.randint(200, 255),  # R - 很高
-                random.randint(180, 255),  # G - 很高
-                random.randint(70, 150),  # B - 中等
-            )
-        elif color_type == 3:  # 偏绿色
-            color2 = (
-                random.randint(100, 180),  # R - 中等
-                random.randint(180, 255),  # G - 很高
-                random.randint(120, 200),  # B - 较高
-            )
-        elif color_type == 4:  # 偏蓝色
-            color2 = (
-                random.randint(100, 180),  # R - 中等
-                random.randint(150, 220),  # G - 较高
-                random.randint(180, 255),  # B - 很高
-            )
-        elif color_type == 5:  # 偏紫色
-            color2 = (
-                random.randint(150, 220),  # R - 较高
-                random.randint(100, 170),  # G - 中等
-                random.randint(180, 255),  # B - 很高
-            )
+    # 如果是已经提供的颜色，将其加深
+    # 降低各通道的亮度，使颜色更深
+    r = int(selected_color[0] * 0.65)  # 降低35%
+    g = int(selected_color[1] * 0.65)  # 降低35%
+    b = int(selected_color[2] * 0.65)  # 降低35%
+    
+    # 确保RGB值不会小于0
+    r = max(0, r)
+    g = max(0, g)
+    b = max(0, b)
+    
+    # 更新颜色
+    selected_color = (r, g, b, selected_color[3] if len(selected_color) > 3 else 255)
 
-        # 新增颜色组 (20种新颜色)
-        elif color_type == 6:  # 鲜红色
-            color2 = (
-                random.randint(220, 255),  # R - 很高
-                random.randint(50, 100),  # G - 中等偏低
-                random.randint(50, 100),  # B - 中等偏低
-            )
-        elif color_type == 7:  # 玫瑰色
-            color2 = (
-                random.randint(220, 255),  # R - 很高
-                random.randint(100, 160),  # G - 中等
-                random.randint(130, 190),  # B - 较高
-            )
-        elif color_type == 8:  # 亮橙色
-            color2 = (
-                random.randint(230, 255),  # R - 很高
-                random.randint(130, 200),  # G - 较高
-                random.randint(30, 90),  # B - 较低
-            )
-        elif color_type == 9:  # 珊瑚色
-            color2 = (
-                random.randint(230, 255),  # R - 很高
-                random.randint(110, 170),  # G - 中等
-                random.randint(100, 160),  # B - 中等
-            )
-        elif color_type == 10:  # 亮黄色
-            color2 = (
-                random.randint(230, 255),  # R - 很高
-                random.randint(200, 255),  # G - 很高
-                random.randint(100, 160),  # B - 中等
-            )
-        elif color_type == 11:  # 柠檬色
-            color2 = (
-                random.randint(200, 255),  # R - 很高
-                random.randint(230, 255),  # G - 很高
-                random.randint(50, 130),  # B - 中等偏低
-            )
-        elif color_type == 12:  # 嫩绿色
-            color2 = (
-                random.randint(130, 190),  # R - 中等
-                random.randint(230, 255),  # G - 很高
-                random.randint(100, 160),  # B - 中等
-            )
-        elif color_type == 13:  # 明绿色
-            color2 = (
-                random.randint(50, 110),  # R - 中等偏低
-                random.randint(220, 255),  # G - 很高
-                random.randint(50, 130),  # B - 中等偏低
-            )
-        elif color_type == 14:  # 青色
-            color2 = (
-                random.randint(50, 110),  # R - 中等偏低
-                random.randint(200, 255),  # G - 很高
-                random.randint(200, 255),  # B - 很高
-            )
-        elif color_type == 15:  # 天蓝色
-            color2 = (
-                random.randint(100, 160),  # R - 中等
-                random.randint(180, 230),  # G - 很高
-                random.randint(230, 255),  # B - 很高
-            )
-        elif color_type == 16:  # 亮蓝色
-            color2 = (
-                random.randint(50, 130),  # R - 中等偏低
-                random.randint(130, 190),  # G - 中等
-                random.randint(230, 255),  # B - 很高
-            )
-        elif color_type == 17:  # 浅紫色
-            color2 = (
-                random.randint(150, 210),  # R - 较高
-                random.randint(100, 160),  # G - 中等
-                random.randint(230, 255),  # B - 很高
-            )
-        elif color_type == 18:  # 淡紫色
-            color2 = (
-                random.randint(180, 230),  # R - 很高
-                random.randint(130, 190),  # G - 中等
-                random.randint(220, 255),  # B - 很高
-            )
-        elif color_type == 19:  # 亮粉色
-            color2 = (
-                random.randint(230, 255),  # R - 很高
-                random.randint(130, 190),  # G - 中等
-                random.randint(200, 255),  # B - 很高
-            )
-        elif color_type == 20:  # 银色
-            gray = random.randint(200, 240)
-            color2 = (gray, gray, gray)  # 均匀浅灰色
-        elif color_type == 21:  # 金色
-            color2 = (
-                random.randint(220, 255),  # R - 很高
-                random.randint(180, 230),  # G - 很高
-                random.randint(80, 140),  # B - 中等
-            )
-        elif color_type == 22:  # 米色
-            color2 = (
-                random.randint(220, 255),  # R - 很高
-                random.randint(210, 245),  # G - 很高
-                random.randint(170, 220),  # B - 较高
-            )
-        elif color_type == 23:  # 浅咖啡色
-            color2 = (
-                random.randint(180, 230),  # R - 很高
-                random.randint(140, 190),  # G - 较高
-                random.randint(100, 160),  # B - 中等
-            )
-        elif color_type == 24:  # 薄荷色
-            color2 = (
-                random.randint(150, 200),  # R - 较高
-                random.randint(220, 255),  # G - 很高
-                random.randint(180, 230),  # B - 很高
-            )
-        else:  # 苍白色
-            color2 = (
-                random.randint(220, 255),  # R - 很高
-                random.randint(220, 255),  # G - 很高
-                random.randint(220, 255),  # B - 很高
-            )
-
-    # 创建渐变图像
-    gradient = Image.new("RGBA", (width, height), color1)
-    draw = ImageDraw.Draw(gradient)
-
-    # 创建从左(深)到右(浅)的线性渐变
-    for x in range(width):
-        # 计算当前位置的颜色插值
-        r = int(color1[0] + (color2[0] - color1[0]) * x / width)
-        g = int(color1[1] + (color2[1] - color1[1]) * x / width)
-        b = int(color1[2] + (color2[2] - color1[2]) * x / width)
-
-        # 绘制一条垂直线
-        draw.line([(x, 0), (x, height)], fill=(r, g, b, 255))
-
+    # 确保selected_color包含alpha通道
+    if len(selected_color) == 3:
+        selected_color = (selected_color[0], selected_color[1], selected_color[2], 255)
+    
+    # 基于selected_color自动生成浅色版本作为右侧颜色
+    # 将selected_color的RGB值增加更合适的比例，使右侧颜色适中
+    # 限制最大值为255
+    r = min(255, int(selected_color[0] * 1.9))  # 从2.2降到1.9
+    g = min(255, int(selected_color[1] * 1.9))  # 从2.2降到1.9
+    b = min(255, int(selected_color[2] * 1.9))  # 从2.2降到1.9
+    
+    # 确保至少有一定的亮度增加，但比之前小
+    r = max(r, selected_color[0] + 80)  # 从100降到80
+    g = max(g, selected_color[1] + 80)  # 从100降到80
+    b = max(b, selected_color[2] + 80)  # 从100降到80
+    
+    # 确保右侧颜色不会太亮
+    r = min(r, 230)  # 限制最大亮度
+    g = min(g, 230)  # 限制最大亮度
+    b = min(b, 230)  # 限制最大亮度
+    
+    # 创建右侧浅色
+    color2 = (r, g, b, selected_color[3])
+    
+    # 创建左右两个纯色图像
+    left_image = Image.new("RGBA", (width, height), selected_color)
+    right_image = Image.new("RGBA", (width, height), color2)
+    
+    # 创建渐变遮罩（从黑到白的横向线性渐变）
+    mask = Image.new("L", (width, height), 0)
+    mask_data = []
+    
+    # 生成遮罩数据，使用更加平滑的过渡
+    for y in range(height):
+        for x in range(width):
+            # 计算从左到右的渐变值 (0-255)
+            # 使用更加非线性的渐变，使左侧深色区域更大
+            mask_value = int(255.0 * (x / width) ** 0.7)  # 从0.85改为0.7
+            mask_data.append(mask_value)
+    
+    # 应用遮罩数据到遮罩图像
+    mask.putdata(mask_data)
+    
+    # 使用遮罩合成左右两个图像
+    # 遮罩中黑色部分(0)显示left_image，白色部分(255)显示right_image
+    gradient = Image.composite(right_image, left_image, mask)
+    
     return gradient
+
 
 def get_poster_primary_color(image_path):
     """
@@ -605,27 +425,24 @@ def get_poster_primary_color(image_path):
             
         # 使用Counter找到出现最多的颜色
         color_counter = Counter(filtered_pixels)
-        common_colors = color_counter.most_common(5)
+        common_colors = color_counter.most_common(10)
         
         # 如果找到了颜色，返回最常见的颜色
         if common_colors:
-            # result=   create_gradient_background(width=1920, height=1080, color1=common_colors[0][0], color2=common_colors[1][0])
-            # result.save(config.CURRENT_DIR  +"\\poster\\out.png", "PNG")
-            return common_colors[0][0],common_colors[1][0],
-
+            return common_colors
         
         # 如果无法找到主色调，使用平均值
         r_avg = sum(p[0] for p in filtered_pixels) // len(filtered_pixels)
         g_avg = sum(p[1] for p in filtered_pixels) // len(filtered_pixels)
         b_avg = sum(p[2] for p in filtered_pixels) // len(filtered_pixels)
         
-        return(r_avg, g_avg, b_avg, 255)
+        return [(r_avg, g_avg, b_avg, 255)]
      
         
     except Exception as e:
         logger.error(f"获取图片主色调时出错: {e}")
         # 返回默认颜色作为备选
-        return (150, 100, 50, 255)
+        return [(150, 100, 50, 255)]
 
 def gen_poster_workflow(name):
     """
@@ -639,7 +456,7 @@ def gen_poster_workflow(name):
         )
         logger.info("-" * 40)
         poster_folder = os.path.join(config.POSTER_FOLDER, name)
-        first_image_path = os.path.join(poster_folder, "2.jpg")
+        first_image_path = os.path.join(poster_folder, "1.jpg")
         output_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.png")
         rows = config.POSTER_GEN_CONFIG["ROWS"]
         cols = config.POSTER_GEN_CONFIG["COLS"]
@@ -654,9 +471,9 @@ def gen_poster_workflow(name):
         # 定义模板尺寸（可以根据需要调整）
         template_width = 1920  # 或者从配置中获取
         template_height = 1080  # 或者从配置中获取
-        color1,color2=  get_poster_primary_color(first_image_path)
+        color=  get_poster_primary_color(first_image_path)
         # 创建渐变背景作为模板
-        gradient_bg = create_gradient_background(template_width, template_height,color1,color2)
+        gradient_bg = create_gradient_background(template_width, template_height, name, color)
 
 
         # 创建保存中间文件的文件夹
@@ -886,11 +703,15 @@ def gen_poster_workflow(name):
                 library_ch_name = matched_template["library_ch_name"]
             if "library_eng_name" in matched_template:
                 library_eng_name = matched_template["library_eng_name"]
-
+        style_name = "style1"  # 假设我们需要获取的样式名称
+        style_config = next(
+            (style for style in config.STYLE_CONFIGS if style.get("style_name") == style_name),
+            None
+        )
         # 添加中文名文字
-        fangzheng_font_path = os.path.join("font", "ch.ttf")
+        fangzheng_font_path = os.path.join("myfont", style_config.get("style_ch_font"))
         result = draw_text_on_image(
-            result, library_ch_name, (73.32, 427.34), fangzheng_font_path, 163
+            result, library_ch_name, (73.32, 427.34), fangzheng_font_path, "ch.ttf", 163
         )
 
         # 如果有英文名，才添加英文名文字
@@ -923,13 +744,14 @@ def gen_poster_workflow(name):
                 f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 使用字体大小: {font_size:.2f}"
             )
 
+
             # 使用多行文本绘制
-            melete_font_path = os.path.join("font", "en.otf")
+            melete_font_path = os.path.join("myfont", style_config.get("style_eng_font"))
             result, line_count = draw_multiline_text_on_image(
                 result,
                 library_eng_name,
                 (124.68, 624.55),
-                melete_font_path,
+                melete_font_path, "en.otf",
                 int(font_size),
                 line_spacing,
             )
