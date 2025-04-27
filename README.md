@@ -31,6 +31,8 @@ jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间�
 
 ## 使用说明
 
+[Docker Hub](https://hub.docker.com/r/evanqu/jellyfin-library-poster)
+
 ### docker 运行
 
 ```bash
