@@ -4,6 +4,8 @@ jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间�
 
 不会 python 随便写的
 
+[Github](https://github.com/HappyQuQu/jellyfin-library-poster)
+
 ## 最近更新
 
 ### 📅 更新日期
