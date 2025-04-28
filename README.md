@@ -306,16 +306,16 @@ python main.py
 
 ### 运行日志
 
-![](./screenshot/1.png)
+![](https://github.com/HappyQuQu/jellyfin-library-poster/raw/main/screenshot/1.png)
 
 ### 海报示例
 
-![](./screenshot/Anime.png)
-![](./screenshot/ClassicTV.png)
-![](./screenshot/Documentary.png)
-![](./screenshot/HotMovie.png)
-![](./screenshot/HotTV.png)
-![](./screenshot/Movie.png)
+![](https://github.com/HappyQuQu/jellyfin-library-poster/raw/main/screenshot/Anime.png)
+![](https://github.com/HappyQuQu/jellyfin-library-poster/raw/main/screenshot/ClassicTV.png)
+![](https://github.com/HappyQuQu/jellyfin-library-poster/raw/main/screenshot/Documentary.png)
+![](https://github.com/HappyQuQu/jellyfin-library-poster/raw/main/screenshot/HotMovie.png)
+![](https://github.com/HappyQuQu/jellyfin-library-poster/raw/main/screenshot/HotTV.png)
+![](https://github.com/HappyQuQu/jellyfin-library-poster/raw/main/screenshot/Movie.png)
 
 ## 历史更新
 
