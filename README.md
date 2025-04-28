@@ -1,16 +1,17 @@
 # jellyfin-library-poster
 
+![GitHub Repo stars](https://img.shields.io/github/stars/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
+![GitHub forks](https://img.shields.io/github/forks/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
+![GitHub contributors](https://img.shields.io/github/contributors/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
+![GitHub repo size](https://img.shields.io/github/repo-size/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
+![Docker Pulls](https://img.shields.io/docker/pulls/evanqu/jellyfin-library-poster?style=for-the-badge)
+
 jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间就随机),定时生成媒体库封面并且上传更新
 
 不会 python 随便写的
 
-## 最近更新
-
-### 📅 更新日期
-
-- 2025-04-27
-
-### 📌 重点提醒
+## 📌 重点提醒
 
 - 背景图基于媒体库第一张海报提取主题色,提取最多 10 个常见颜色
 - 通过 HSL 颜色空间判断颜色是否适合做背景
@@ -19,15 +20,19 @@ jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间�
 - 随机颜色会控制在合适的色相、饱和度和明度范围内
 - 创建从左到右的渐变遮罩，左侧深色到右侧浅色的渐变，为前置的电影海报提供良好的衬托
 
+## 最近更新
+
+### 📅 更新日期
+
+- 2025-04-28
+
 ### ✨ 新增功能
 
-- 支持媒体海报根据不同规则排序,详情查看`template_mapping 节点媒体库模板映射`
-- 支持自定义字体,详情查看`style_config 节点字体映射`
-- 优化媒体库海报背景图，提升整体明亮度,调整背景图生成逻辑,详见`重点提醒`
+- 无
 
 ### 🐞 问题修复
 
-无
+- 修复`Emby`随机排序方式无效
 
 ## 使用说明
 

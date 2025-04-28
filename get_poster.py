@@ -34,17 +34,27 @@ def get_items(parent_id, library_name=None):
     """获取媒体项列表"""
     # 根据库名从TEMPLATE_MAPPING中获取排序方式
     sort_by = "DateCreated"  # 默认排序方式
-    
+
     if library_name:
         # 查找匹配的媒体库配置
         for lib_config in config.TEMPLATE_MAPPING:
-            if lib_config["library_name"] == library_name and "poster_sort" in lib_config:
-                sort_by = lib_config["poster_sort"]
-                break
-    logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{library_name}] 使用配置的排序方式: {sort_by}")
+            if (
+                lib_config["library_name"] == library_name
+                and "poster_sort" in lib_config
+            ):
+                if lib_config["poster_sort"] == "Random":
+                    random_seed = random.randint(1000000, 9999999)
+                    sort_by = f"{lib_config['poster_sort']}&RandomSeed={random_seed}"
+                else:
+                    sort_by = f"{lib_config['poster_sort']},SortName"
 
+                break
+    logger.info(
+        f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{library_name}] 使用配置的排序方式: {sort_by}"
+    )
     # 修改为获取用户的媒体库列表
-    url = f"{config.JELLYFIN_CONFIG['BASE_URL']}/Users/{config.JELLYFIN_CONFIG['USER_ID']}/Items/?ParentId={parent_id}&&Recursive=true&SortBy={sort_by},SortName&SortOrder=Descending&IncludeItemTypes=Movie,Series,Audio,Music,Game,Book,MusicVideo"
+    url = f"{config.JELLYFIN_CONFIG['BASE_URL']}/Users/{config.JELLYFIN_CONFIG['USER_ID']}/Items/?ParentId={parent_id}&Recursive=true&SortBy={sort_by}&SortOrder=Descending&IncludeItemTypes=Movie,Series,Audio,Music,Game,Book,MusicVideo"
+    print(f"{url}")
 
     headers = {
         "Authorization": f'MediaBrowser Token="{config.JELLYFIN_CONFIG["ACCESS_TOKEN"]}"'
