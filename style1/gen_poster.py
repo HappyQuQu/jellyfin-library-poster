@@ -51,7 +51,13 @@ def add_shadow(img, offset=(5, 5), shadow_color=(0, 0, 0, 100), blur_radius=3):
 
 
 def draw_text_on_image(
-    image, text, position, font_path,default_font_path, font_size, fill_color=(255, 255, 255, 255)
+    image,
+    text,
+    position,
+    font_path,
+    default_font_path,
+    font_size,
+    fill_color=(255, 255, 255, 255),
 ):
     """
     在图像上绘制文字
@@ -200,20 +206,21 @@ def draw_color_block(image, position, size, color):
     return img_copy
 
 
-def create_gradient_background(width, height, name,color=None):
+def create_gradient_background(width, height, name, color=None):
     """
     创建一个从左到右的渐变背景，使用遮罩技术实现渐变效果
     左侧颜色更深，右侧颜色适中，提供更明显的渐变效果
-    
+
     参数:
         width: 背景宽度
         height: 背景高度
         color: 颜色数组或单个颜色，如果为None则随机生成
               如果是数组，会依次尝试每个颜色，跳过太黑或太淡的颜色
-        
+
     返回:
         渐变背景图像
     """
+
     def normalize_rgb(input_rgb):
         """
         将各种可能的输入格式，统一提取成 (r, g, b) 三元组。
@@ -227,10 +234,14 @@ def create_gradient_background(width, height, name,color=None):
             if len(input_rgb) == 2 and isinstance(input_rgb[0], tuple):
                 return normalize_rgb(input_rgb[0])
             # 情况 2: RGBA
-            if len(input_rgb) == 4 and all(isinstance(v, (int, float)) for v in input_rgb):
+            if len(input_rgb) == 4 and all(
+                isinstance(v, (int, float)) for v in input_rgb
+            ):
                 return input_rgb[:3]
             # 情况 1: RGB
-            if len(input_rgb) == 3 and all(isinstance(v, (int, float)) for v in input_rgb):
+            if len(input_rgb) == 3 and all(
+                isinstance(v, (int, float)) for v in input_rgb
+            ):
                 return input_rgb
         raise ValueError(f"无法识别的颜色格式: {input_rgb!r}")
 
@@ -240,8 +251,9 @@ def create_gradient_background(width, height, name,color=None):
         input_rgb 可为多种格式，函数内部会 normalize。
         """
         r, g, b = normalize_rgb(input_rgb)
-        lum = 0.299*r + 0.587*g + 0.114*b
+        lum = 0.299 * r + 0.587 * g + 0.114 * b
         return min_lum <= lum <= max_lum
+
     # 定义用于判断颜色是否合适的函数
     def is_mid_bright_hsl(input_rgb, min_l=0.3, max_l=0.7):
         """
@@ -249,34 +261,40 @@ def create_gradient_background(width, height, name,color=None):
         """
         r, g, b = normalize_rgb(input_rgb)
         # 归一到 [0,1]
-        r1, g1, b1 = r/255.0, g/255.0, b/255.0
+        r1, g1, b1 = r / 255.0, g / 255.0, b / 255.0
         h, l, s = colorsys.rgb_to_hls(r1, g1, b1)
         return min_l <= l <= max_l
-    
+
     selected_color = None
-    
+
     # 如果传入的是颜色数组
     if isinstance(color, list) and len(color) > 0:
         # 尝试找到合适的颜色，最多尝试5个
         for i in range(min(10, len(color))):
             if is_mid_bright_hsl(color[i]):
                 # 如果是(color_tuple, count)格式，提取颜色元组
-                if isinstance(color[i], tuple) and len(color[i]) == 2 and isinstance(color[i][0], tuple):
+                if (
+                    isinstance(color[i], tuple)
+                    and len(color[i]) == 2
+                    and isinstance(color[i][0], tuple)
+                ):
                     selected_color = color[i][0]
                 else:
                     selected_color = color[i]
-                logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报主题色:[{selected_color}]适合做背景")
+                logger.info(
+                    f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报主题色:[{selected_color}]适合做背景"
+                )
                 break
             else:
-                logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报主题色:[{color[i]}]不适合做背景,尝试做下一个颜色")
-    
+                logger.info(
+                    f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报主题色:[{color[i]}]不适合做背景,尝试做下一个颜色"
+                )
+
     # 如果没有找到合适的颜色，随机生成一个颜色
     if selected_color is None:
 
         def random_hsl_to_rgb(
-            hue_range=(0, 360),
-            sat_range=(0.5, 1.0),
-            light_range=(0.5, 0.8)
+            hue_range=(0, 360), sat_range=(0.5, 1.0), light_range=(0.5, 0.8)
         ):
             """
             hue_range: 色相范围，取值 0~360
@@ -284,64 +302,66 @@ def create_gradient_background(width, height, name,color=None):
             light_range: 明度范围，取值 0~1
             返回值：RGB 三元组，每个通道 0~255
             """
-            h = random.uniform(hue_range[0]/360.0, hue_range[1]/360.0)
+            h = random.uniform(hue_range[0] / 360.0, hue_range[1] / 360.0)
             s = random.uniform(sat_range[0], sat_range[1])
             l = random.uniform(light_range[0], light_range[1])
             # colorsys.hls_to_rgb 接受 H, L, S (注意顺序) 都是 0~1
             r, g, b = colorsys.hls_to_rgb(h, l, s)
             # 转回 0~255
-            return (int(r*255), int(g*255), int(b*255))
+            return (int(r * 255), int(g * 255), int(b * 255))
 
         # 生成颜色示例
         selected_color = random_hsl_to_rgb()
-        logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报所有主题色不适合做背景，随机生成一个颜色[{selected_color}]。")
+        logger.info(
+            f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报所有主题色不适合做背景，随机生成一个颜色[{selected_color}]。"
+        )
 
     # 如果是已经提供的颜色，将其加深
     # 降低各通道的亮度，使颜色更深
     r = int(selected_color[0] * 0.65)  # 降低35%
     g = int(selected_color[1] * 0.65)  # 降低35%
     b = int(selected_color[2] * 0.65)  # 降低35%
-    
+
     # 确保RGB值不会小于0
     r = max(0, r)
     g = max(0, g)
     b = max(0, b)
-    
+
     # 更新颜色
     selected_color = (r, g, b, selected_color[3] if len(selected_color) > 3 else 255)
 
     # 确保selected_color包含alpha通道
     if len(selected_color) == 3:
         selected_color = (selected_color[0], selected_color[1], selected_color[2], 255)
-    
+
     # 基于selected_color自动生成浅色版本作为右侧颜色
     # 将selected_color的RGB值增加更合适的比例，使右侧颜色适中
     # 限制最大值为255
     r = min(255, int(selected_color[0] * 1.9))  # 从2.2降到1.9
     g = min(255, int(selected_color[1] * 1.9))  # 从2.2降到1.9
     b = min(255, int(selected_color[2] * 1.9))  # 从2.2降到1.9
-    
+
     # 确保至少有一定的亮度增加，但比之前小
     r = max(r, selected_color[0] + 80)  # 从100降到80
     g = max(g, selected_color[1] + 80)  # 从100降到80
     b = max(b, selected_color[2] + 80)  # 从100降到80
-    
+
     # 确保右侧颜色不会太亮
     r = min(r, 230)  # 限制最大亮度
     g = min(g, 230)  # 限制最大亮度
     b = min(b, 230)  # 限制最大亮度
-    
+
     # 创建右侧浅色
     color2 = (r, g, b, selected_color[3])
-    
+
     # 创建左右两个纯色图像
     left_image = Image.new("RGBA", (width, height), selected_color)
     right_image = Image.new("RGBA", (width, height), color2)
-    
+
     # 创建渐变遮罩（从黑到白的横向线性渐变）
     mask = Image.new("L", (width, height), 0)
     mask_data = []
-    
+
     # 生成遮罩数据，使用更加平滑的过渡
     for y in range(height):
         for x in range(width):
@@ -349,100 +369,100 @@ def create_gradient_background(width, height, name,color=None):
             # 使用更加非线性的渐变，使左侧深色区域更大
             mask_value = int(255.0 * (x / width) ** 0.7)  # 从0.85改为0.7
             mask_data.append(mask_value)
-    
+
     # 应用遮罩数据到遮罩图像
     mask.putdata(mask_data)
-    
+
     # 使用遮罩合成左右两个图像
     # 遮罩中黑色部分(0)显示left_image，白色部分(255)显示right_image
     gradient = Image.composite(right_image, left_image, mask)
-    
+
     return gradient
 
 
 def get_poster_primary_color(image_path):
     """
     分析图片并提取主色调
-    
+
     参数:
         image_path: 图片文件路径
-        
+
     返回:
         主色调颜色，RGBA格式
     """
     try:
         from collections import Counter
-        
+
         # 打开图片
         img = Image.open(image_path)
-        
+
         # 缩小图片尺寸以加快处理速度
         img = img.resize((100, 150), Image.LANCZOS)
-        
+
         # 确保图片为RGBA模式
-        if img.mode != 'RGBA':
-            img = img.convert('RGBA')
-            
+        if img.mode != "RGBA":
+            img = img.convert("RGBA")
+
         # 获取图片中心部分的像素数据（避免边框和角落）
         # width, height = img.size
         # center_x1 = int(width * 0.2)
         # center_y1 = int(height * 0.2)
         # center_x2 = int(width * 0.8)
         # center_y2 = int(height * 0.8)
-        
+
         # # 裁剪出中心区域
         # center_img = img.crop((center_x1, center_y1, center_x2, center_y2))
 
         # 获取所有像素
         pixels = list(img.getdata())
-        
+
         # 过滤掉接近黑色和白色的像素，以及透明度低的像素
         filtered_pixels = []
         for pixel in pixels:
             r, g, b, a = pixel
-            
+
             # 跳过透明度低的像素
             if a < 200:
                 continue
-                
+
             # 计算亮度
             brightness = (r + g + b) / 3
-            
+
             # 跳过过暗或过亮的像素
             if brightness < 30 or brightness > 220:
                 continue
-                
+
             # 添加到过滤后的列表
             filtered_pixels.append((r, g, b, 255))
-            
+
         # 如果过滤后没有像素，使用全部像素
         if not filtered_pixels:
             filtered_pixels = [(p[0], p[1], p[2], 255) for p in pixels if p[3] > 100]
-            
+
         # 如果仍然没有像素，返回默认颜色
         if not filtered_pixels:
             return (150, 100, 50, 255)
-            
+
         # 使用Counter找到出现最多的颜色
         color_counter = Counter(filtered_pixels)
         common_colors = color_counter.most_common(10)
-        
+
         # 如果找到了颜色，返回最常见的颜色
         if common_colors:
             return common_colors
-        
+
         # 如果无法找到主色调，使用平均值
         r_avg = sum(p[0] for p in filtered_pixels) // len(filtered_pixels)
         g_avg = sum(p[1] for p in filtered_pixels) // len(filtered_pixels)
         b_avg = sum(p[2] for p in filtered_pixels) // len(filtered_pixels)
-        
+
         return [(r_avg, g_avg, b_avg, 255)]
-     
-        
+
     except Exception as e:
         logger.error(f"获取图片主色调时出错: {e}")
         # 返回默认颜色作为备选
         return [(150, 100, 50, 255)]
+
 
 def gen_poster_workflow(name):
     """
@@ -471,10 +491,11 @@ def gen_poster_workflow(name):
         # 定义模板尺寸（可以根据需要调整）
         template_width = 1920  # 或者从配置中获取
         template_height = 1080  # 或者从配置中获取
-        color=  get_poster_primary_color(first_image_path)
+        color = get_poster_primary_color(first_image_path)
         # 创建渐变背景作为模板
-        gradient_bg = create_gradient_background(template_width, template_height, name, color)
-
+        gradient_bg = create_gradient_background(
+            template_width, template_height, name, color
+        )
 
         # 创建保存中间文件的文件夹
         output_dir = os.path.dirname(output_path)
@@ -705,8 +726,12 @@ def gen_poster_workflow(name):
                 library_eng_name = matched_template["library_eng_name"]
         style_name = "style1"  # 假设我们需要获取的样式名称
         style_config = next(
-            (style for style in config.STYLE_CONFIGS if style.get("style_name") == style_name),
-            None
+            (
+                style
+                for style in config.STYLE_CONFIGS
+                if style.get("style_name") == style_name
+            ),
+            None,
         )
         # 添加中文名文字
         fangzheng_font_path = os.path.join("myfont", style_config.get("style_ch_font"))
@@ -744,14 +769,16 @@ def gen_poster_workflow(name):
                 f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 使用字体大小: {font_size:.2f}"
             )
 
-
             # 使用多行文本绘制
-            melete_font_path = os.path.join("myfont", style_config.get("style_eng_font"))
+            melete_font_path = os.path.join(
+                "myfont", style_config.get("style_eng_font")
+            )
             result, line_count = draw_multiline_text_on_image(
                 result,
                 library_eng_name,
                 (124.68, 624.55),
-                melete_font_path, "en.otf",
+                melete_font_path,
+                "en.otf",
                 int(font_size),
                 line_spacing,
             )
@@ -785,4 +812,4 @@ def gen_poster_workflow(name):
 
 
 if __name__ == "__main__":
-    get_poster_primary_color(config.CURRENT_DIR  +"\\poster\\Hot TV\\1.jpg")
+    get_poster_primary_color(config.CURRENT_DIR + "\\poster\\Hot TV\\1.jpg")

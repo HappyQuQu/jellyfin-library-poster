@@ -7,16 +7,14 @@
       "user_name": "user",
       "password": "pass",
       "update_poster": false
-    },
-    {
-      "base_url": "http://192.168.2.232:8089",
-      "user_name": "user",
-      "password": "pass",
-      "update_poster": false
     }
   ],
   "cron": "0 1 * * *",
-  "exclude_update_library": ["Short", "Playlists", "合集"],
+  "exclude_update_library": [
+    "Short",
+    "Playlists",
+    "合集"
+  ],
   "style_config": [
     {
       "style_name": "style1",

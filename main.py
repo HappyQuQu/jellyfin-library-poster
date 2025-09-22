@@ -12,7 +12,8 @@ from croniter import croniter
 
 # 导入自定义模块
 import config
-from gen_poster import gen_poster_workflow
+from style1.gen_poster import gen_poster_workflow as gen_poster_1
+from style2.gen_poster import gen_poster_workflow as gen_poster_2
 from get_library import get_libraries
 from get_poster import download_posters_workflow
 from update_poster import upload_poster_workflow
@@ -60,7 +61,12 @@ def process_libraries():
                 continue
 
             # 3. 生成九宫格海报
-            gen_poster_workflow(current_library)
+            poster_style = jellyfin_config.get("STYLE", "style1")
+            match poster_style:
+                case "style1":
+                    gen_poster_1(current_library)
+                case "style2":
+                    gen_poster_2(current_library)
 
             # 4. 上传海报到Jellyfin
             if config.JELLYFIN_CONFIG["UPDATE_POSTER"]:  # 检查是否需要更新海报
