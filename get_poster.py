@@ -57,9 +57,7 @@ def get_items(parent_id, library_name=None):
     url = f"{config.JELLYFIN_CONFIG['BASE_URL']}/Users/{config.JELLYFIN_CONFIG['USER_ID']}/Items/?ParentId={parent_id}&Recursive=true&SortBy={sort_by}&SortOrder=Descending&IncludeItemTypes=Movie,Series,Audio,Music,Game,Book,MusicVideo,BoxSet&Limit=50"
     print(f"{url}")
 
-    headers = {
-        "Authorization": f'MediaBrowser Token="{config.JELLYFIN_CONFIG["ACCESS_TOKEN"]}"'
-    }
+    headers = config.get_auth_headers()
     try:
         log_prefix = f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}]"
         if library_name:
@@ -131,9 +129,7 @@ def download_image(item_id, output_path, index, library_name=None):
     """下载指定 ID 的媒体项的封面图片"""
     url = f"{config.JELLYFIN_CONFIG['BASE_URL']}/Items/{item_id}/Images/{config.JELLYFIN_CONFIG['IMAGE_TYPE']}"
 
-    headers = {
-        "Authorization": f'MediaBrowser Token="{config.JELLYFIN_CONFIG["ACCESS_TOKEN"]}"'
-    }
+    headers = config.get_auth_headers()
 
     log_prefix = f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}]"
     if library_name:

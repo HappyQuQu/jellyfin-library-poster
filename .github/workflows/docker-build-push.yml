@@ -7,8 +7,38 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    name: Test 1.0 compatibility fixes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+
+  sync_description:
+    name: Sync README and 2.0 migration notice to Docker Hub
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: evanqu/jellyfin-library-poster
+          readme-filepath: ./README.md
+          short-description: '1.0 retired. Use LibraryCoverStudio 2.0: github.com/HappyQuQu/library-cover-studio'
+
   build_and_push:
     name: Build and Push Multi-Arch Docker Image
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       packages: write

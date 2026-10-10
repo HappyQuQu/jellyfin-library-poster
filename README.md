@@ -1,5 +1,13 @@
 # jellyfin-library-poster
 
+> **📢 1.0 已停止维护，请移步 2.0：[LibraryCoverStudio](https://github.com/HappyQuQu/library-cover-studio)**
+>
+> 本仓库与 `evanqu/jellyfin-library-poster` Docker 镜像属于旧版 1.0 项目。本次仅修复已知问题，后续功能开发与维护转移到 **LibraryCoverStudio 2.0**。
+>
+> **[👉 前往 2.0 项目：功能介绍、安装与 Docker 部署](https://github.com/HappyQuQu/library-cover-studio#readme)**
+>
+> 2.0 支持 Jellyfin / Emby、可视化封面设计器、多套模板和自动化定时生成。新用户建议直接使用 2.0；现有用户请按新项目文档单独部署并重新配置媒体源与任务，1.0 的配置不能直接作为 2.0 配置使用。
+
 ![GitHub Repo stars](https://img.shields.io/github/stars/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
 ![GitHub forks](https://img.shields.io/github/forks/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
 ![GitHub contributors](https://img.shields.io/github/contributors/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
@@ -9,7 +17,7 @@
 
 jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间就随机),定时生成媒体库封面并且上传更新
 
-不会 python 随便写的
+以下内容保留供仍在使用 1.0 的用户参考。
 
 ## 📌 重点提醒
 
@@ -24,18 +32,21 @@ jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间�
 
 ### 📅 更新日期
 
-- 2025-04-29
+- 2026-10-10（1.0 兼容性修复）
 
 ### ✨ 新增功能
 
-- 增加文字阴影功能，可分别为中文和英文文本设置阴影效果
-- 文字阴影支持自定义偏移和透明度设置
+- README 和 Docker Hub 增加 1.0 停止维护说明及 [2.0 项目入口](https://github.com/HappyQuQu/library-cover-studio)
 
 ### 🐞 问题修复
 
-- 修复`Emby`随机排序方式无效
+- 修复 [#16](https://github.com/HappyQuQu/jellyfin-library-poster/issues/16)：补齐 Emby 客户端认证信息，使用 `X-Emby-Authorization` / `X-Emby-Token` 兼容反向代理；保留服务器子路径并移除地址末尾多余的 `/`
+- 修复 [#20](https://github.com/HappyQuQu/jellyfin-library-poster/issues/20)：缺少 `style1` 或字体配置时回退到内置样式和字体，避免生成图片时报 `NoneType` 错误
+- 生成失败时跳过上传，避免把上次生成的旧图片误传到媒体库；PNG 上传使用正确的图片类型
 
 ## 使用说明
+
+**推荐使用 [LibraryCoverStudio 2.0](https://github.com/HappyQuQu/library-cover-studio#readme)，下面的命令仅适用于旧版 1.0。**
 
 [Docker Hub](https://hub.docker.com/r/evanqu/jellyfin-library-poster)
 
@@ -47,8 +58,8 @@ docker run \
   -v "./config:/app/config" \
   -v "./poster:/app/poster" \
   -v "./output:/app/output" \
-  -v "./output:/app/logs" \
-  -v "./myfont:/app/myfont"
+  -v "./logs:/app/logs" \
+  -v "./myfont:/app/myfont" \
   evanqu/jellyfin-library-poster:latest
 ```
 
@@ -225,6 +236,8 @@ python main.py
 | password      | Jellyfin/Emby 用户密码                                                                                                   | 是   | -      |
 | update_poster | 是否自动上传更新媒体库海报到服务器(会覆盖服务器上原有的媒体库海报,建议先 false,看实际生成效果满意改成 true,重新运行一遍) | 否   | false  |
 
+`base_url` 请填写服务器基础地址，保留反向代理子路径，例如 `https://example.com/emby` 或 `https://example.com/jellyfin`，不要填写 `/web` 登录页面地址。Emby 请设置 `server_type: "emby"`，使用服务器本地用户名和密码，不要使用 Emby Connect 账号。如果仍返回 401 / 403，请检查账号的远程访问和设备访问权限，以及反向代理是否拦截 API 请求。
+
 ### `cron`节点 定时任务
 
 ```json
@@ -267,7 +280,7 @@ python main.py
 ],
 ```
 
-目前只有一种海报风格所以`style_name`为`style1`
+目前只有一种海报风格所以`style_name`为`style1`。省略 `style_config`、配置为空或没有匹配的 `style1` 时，会使用内置样式；字体字段未填写、为空或文件不存在时，会回退到 `font/ch.ttf` 和 `font/en.otf`。
 
 | 字段名                 | 说明                                         | 必填 | 默认值    |
 | ---------------------- | -------------------------------------------- | ---- | --------- |
@@ -333,6 +346,10 @@ python main.py
 ## 历史更新
 
 ### 📅 更新日期
+
+- 2026-10-10
+  - 修复 Emby 认证、缺失样式配置导致的生成失败，以及生成失败后仍上传旧海报的问题
+  - 1.0 停止维护，后续开发与维护转移到 [LibraryCoverStudio 2.0](https://github.com/HappyQuQu/library-cover-studio)
 
 - 2025-04-29
   - 增加文字阴影功能，可分别为中文和英文文本设置阴影效果

@@ -29,7 +29,7 @@ if isinstance(JSON_CONFIG["jellyfin"], list):
             {
                 "SERVER_NAME": json_config.get("server_name", json_config["base_url"]),
                 "SERVER_TYPE": json_config.get("server_type", ""),
-                "BASE_URL": json_config["base_url"],  # 从JSON配置获取Jellyfin服务地址
+                "BASE_URL": json_config["base_url"].rstrip("/"),  # 保留反向代理子路径
                 "USER_NAME": json_config["user_name"],  # 用户名
                 "PASSWORD": json_config["password"],  # 密码
                 "AUTHORIZATION": 'MediaBrowser Client="other", Device="client", DeviceId="123", Version="0.0.0"',  # 是否需要认证
@@ -50,7 +50,7 @@ else:
         "SERVER_TYPE": JSON_CONFIG["jellyfin"].get("server_type", ""),
         "BASE_URL": JSON_CONFIG["jellyfin"][
             "base_url"
-        ],  # 从JSON配置获取Jellyfin服务地址
+        ].rstrip("/"),  # 保留反向代理子路径
         "USER_NAME": JSON_CONFIG["jellyfin"]["user_name"],  # 用户名
         "PASSWORD": JSON_CONFIG["jellyfin"]["password"],  # 密码
         "AUTHORIZATION": 'MediaBrowser Client="other", Device="client", DeviceId="123", Version="0.0.0"',  # 是否需要认证
@@ -87,11 +87,12 @@ EXCLUDE_LIBRARY = JSON_CONFIG["exclude_update_library"]  # 排除更新的媒体
 TEMPLATE_MAPPING = JSON_CONFIG["template_mapping"]
 
 
-STYLE_CONFIGS = JSON_CONFIG.get("style_config", [{
+DEFAULT_STYLE_CONFIG = {
     "style_name": "style1",
     "style_ch_font": "ch.ttf",
     "style_eng_font": "en.otf"
-}])  # 获取样式配置
+}
+STYLE_CONFIGS = JSON_CONFIG.get("style_config") or [DEFAULT_STYLE_CONFIG.copy()]
 
 # 海报生成配置
 POSTER_GEN_CONFIG = {
@@ -126,12 +127,14 @@ def init_auth():
         JELLYFIN_CONFIG["BASE_URL"],
         JELLYFIN_CONFIG["USER_NAME"],
         JELLYFIN_CONFIG["PASSWORD"],
+        JELLYFIN_CONFIG["SERVER_TYPE"],
     )
 
     if auth_info:
         # 更新JELLYFIN_CONFIG
         JELLYFIN_CONFIG["ACCESS_TOKEN"] = auth_info.get("access_token", "")
         JELLYFIN_CONFIG["USER_ID"] = auth_info.get("user_id", "")
+        JELLYFIN_CONFIG["BASE_URL"] = auth_info["base_url"]
         logger.info(f"认证信息已更新: 用户ID={JELLYFIN_CONFIG['USER_ID'][:8]}...")
         return True
     else:
@@ -153,6 +156,17 @@ def get_auth_info():
         "access_token": JELLYFIN_CONFIG["ACCESS_TOKEN"],
         "base_url": JELLYFIN_CONFIG["BASE_URL"],
     }
+
+
+def get_auth_headers():
+    """为媒体库读取、图片下载和上传提供一致的认证头。"""
+    from auth import get_request_headers
+
+    return get_request_headers(
+        JELLYFIN_CONFIG["SERVER_TYPE"],
+        JELLYFIN_CONFIG["ACCESS_TOKEN"],
+        JELLYFIN_CONFIG["USER_ID"],
+    )
 
 
 # 刷新认证信息

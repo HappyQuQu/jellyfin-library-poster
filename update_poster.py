@@ -33,10 +33,8 @@ def upload_image(item_id, image_data, library_name):
     try:
         # 构造 URL 和请求头
         url = f"{config.JELLYFIN_CONFIG['BASE_URL']}/Items/{item_id}/Images/{config.JELLYFIN_CONFIG['IMAGE_TYPE']}"
-        headers = {
-            "Authorization": f'MediaBrowser Token="{config.JELLYFIN_CONFIG["ACCESS_TOKEN"]}"',
-            "Content-Type": "Image/jpeg",
-        }
+        headers = config.get_auth_headers()
+        headers["Content-Type"] = "image/png"
         response = requests.post(url, headers=headers, data=image_data, timeout=30)
 
         if response.status_code in (200, 204):

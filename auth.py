@@ -1,13 +1,34 @@
 import requests
 import json
-import os
+import socket
+import uuid
 from logger import get_module_logger
 
 # 获取模块日志记录器
 logger = get_module_logger("auth")
 
 
-def authenticate(base_url, username, password):
+DEVICE_ID = uuid.uuid5(uuid.NAMESPACE_DNS, socket.gethostname()).hex
+
+
+def get_request_headers(server_type="", access_token="", user_id=""):
+    """提供完整客户端身份，并通过专用头传递认证信息，兼容反向代理。"""
+    scheme = "Emby" if server_type.lower() == "emby" else "MediaBrowser"
+    authorization = (
+        f'{scheme} Client="jellyfin-library-poster", '
+        f'Device="jellyfin-library-poster", DeviceId="{DEVICE_ID}", Version="1.0.0"'
+    )
+    if user_id:
+        authorization += f', UserId="{user_id}"'
+    if access_token:
+        authorization += f', Token="{access_token}"'
+    headers = {"X-Emby-Authorization": authorization}
+    if access_token:
+        headers["X-Emby-Token"] = access_token
+    return headers
+
+
+def authenticate(base_url, username, password, server_type=""):
     """
     进行Jellyfin/Emby身份验证并返回User.Id和AccessToken
 
@@ -15,18 +36,18 @@ def authenticate(base_url, username, password):
         dict: 包含User.Id和AccessToken的字典，验证失败则返回None
     """
 
+    base_url = base_url.rstrip("/")
     url = f"{base_url}/Users/AuthenticateByName"
+    if not server_type and base_url.lower().endswith("/emby"):
+        server_type = "emby"
 
-    payload = json.dumps({"username": username, "Pw": password})
-
-    headers = {
-        "authorization": 'MediaBrowser Client="other", Device="jellyfin-library-poster", DeviceId="123", Version="0.0.0"',
-        "Content-Type": "application/json",
-    }
+    headers = get_request_headers(server_type)
 
     try:
         logger.info(f"正在连接服务器: {base_url}")
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.post(
+            url, headers=headers, json={"Username": username, "Pw": password}, timeout=30
+        )
         response.raise_for_status()  # 检查HTTP错误
 
         data = response.json()
@@ -46,6 +67,11 @@ def authenticate(base_url, username, password):
 
     except requests.exceptions.RequestException as e:
         logger.error(f"认证请求失败: {str(e)}")
+        if e.response is not None and e.response.status_code in (401, 403):
+            logger.error(
+                "请使用媒体服务器本地用户名和密码（不是 Emby Connect 账号），"
+                "并检查用户的远程访问、设备访问权限及反向代理规则"
+            )
         return None
     except json.JSONDecodeError:
         logger.error("无法解析服务器响应")

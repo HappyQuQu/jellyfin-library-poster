@@ -21,9 +21,7 @@ def get_libraries():
     logger.info("-" * 40)
     url = f"{config.JELLYFIN_CONFIG['BASE_URL']}/Library/MediaFolders"
 
-    headers = {
-        "Authorization": f'MediaBrowser Token="{config.JELLYFIN_CONFIG["ACCESS_TOKEN"]}"'
-    }
+    headers = config.get_auth_headers()
 
     try:
         response = requests.request("GET", url, headers=headers)

@@ -733,10 +733,14 @@ def gen_poster_workflow(name):
             if "library_eng_name" in matched_template:
                 library_eng_name = matched_template["library_eng_name"]
         style_name = "style1"  # 假设我们需要获取的样式名称
-        style_config = next(
-            (style for style in config.STYLE_CONFIGS if style.get("style_name") == style_name),
-            None
+        matched_style = next(
+            (
+                style for style in config.STYLE_CONFIGS
+                if isinstance(style, dict) and style.get("style_name") == style_name
+            ),
+            {},
         )
+        style_config = {**config.DEFAULT_STYLE_CONFIG, **matched_style}
         
         # 获取文字阴影设置
         ch_shadow_enabled = style_config.get("style_ch_shadow", False) if style_config else False
@@ -748,7 +752,9 @@ def gen_poster_workflow(name):
         eng_shadow_offset = style_config.get("style_eng_shadow_offset", (2, 2)) if style_config else (2, 2)
 
         # 添加中文名文字，可选添加阴影
-        fangzheng_font_path = os.path.join("myfont", style_config.get("style_ch_font"))
+        fangzheng_font_path = os.path.join(
+            "myfont", style_config.get("style_ch_font") or "ch.ttf"
+        )
         result = draw_text_on_image(
             result, library_ch_name, (73.32, 427.34), fangzheng_font_path, "ch.ttf", 163,
             shadow_enabled=ch_shadow_enabled, shadow_offset=ch_shadow_offset
@@ -785,7 +791,9 @@ def gen_poster_workflow(name):
             )
 
             # 使用多行文本绘制，可选添加阴影
-            melete_font_path = os.path.join("myfont", style_config.get("style_eng_font"))
+            melete_font_path = os.path.join(
+                "myfont", style_config.get("style_eng_font") or "en.otf"
+            )
             result, line_count = draw_multiline_text_on_image(
                 result,
                 library_eng_name,

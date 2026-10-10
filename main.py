@@ -60,7 +60,11 @@ def process_libraries():
                 continue
 
             # 3. 生成九宫格海报
-            gen_poster_workflow(current_library)
+            if not gen_poster_workflow(current_library):
+                logger.warning(
+                    f"[{jellyfin_config['SERVER_NAME']}][{current_library}] 生成海报失败，跳过上传"
+                )
+                continue
 
             # 4. 上传海报到Jellyfin
             if config.JELLYFIN_CONFIG["UPDATE_POSTER"]:  # 检查是否需要更新海报
