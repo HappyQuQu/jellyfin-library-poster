@@ -1,12 +1,15 @@
 # jellyfin-library-poster
 
-> **📢 1.0 已停止维护，请移步 2.0：[LibraryCoverStudio](https://github.com/HappyQuQu/library-cover-studio)**
+> [!WARNING]
+> **本项目（1.0）已停止维护，请迁移至 v2：[LibraryCoverStudio](https://github.com/HappyQuQu/library-cover-studio)。**
 >
-> 本仓库与 `evanqu/jellyfin-library-poster` Docker 镜像属于旧版 1.0 项目。本次仅修复已知问题，后续功能开发与维护转移到 **LibraryCoverStudio 2.0**。
+> 本仓库与 `evanqu/jellyfin-library-poster` Docker 镜像均为旧版 1.0，**不再提供功能更新、问题修复或日常维护**。后续开发、维护和问题反馈均已转移到 **LibraryCoverStudio v2**；本仓库仅保留历史源码与文档供参考。
 >
 > **[👉 前往 2.0 项目：功能介绍、安装与 Docker 部署](https://github.com/HappyQuQu/library-cover-studio#readme)**
 >
 > 2.0 支持 Jellyfin / Emby、可视化封面设计器、多套模板和自动化定时生成。新用户建议直接使用 2.0；现有用户请按新项目文档单独部署并重新配置媒体源与任务，1.0 的配置不能直接作为 2.0 配置使用。
+>
+> **[v2 使用指南](https://github.com/HappyQuQu/library-cover-studio/blob/main/doc/Automation_Guide.md) · [v2 问题反馈](https://github.com/HappyQuQu/library-cover-studio/issues)**
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
 ![GitHub forks](https://img.shields.io/github/forks/HappyQuQu/jellyfin-library-poster?style=for-the-badge)
@@ -19,6 +22,23 @@ jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间�
 
 以下内容保留供仍在使用 1.0 的用户参考。
 
+## 常见问题：主标题 / 副标题在哪里配置？
+
+主副标题由本项目生成封面时填入，在本项目中配置，无需在 Jellyfin / Emby 后台寻找“副标题”选项。
+
+- **v2（推荐）**：进入 LibraryCoverStudio「自动化 → 新建任务」，选择媒体库后，在第二步「配置封面」展开对应媒体库，填写「主标题」「副标题」。自定义模板中的文字需使用 `{{primary_title}}` / `{{secondary_title}}` 变量；保存模板后重新生成真实样张。详见 [自动化使用指南](https://github.com/HappyQuQu/library-cover-studio/blob/main/doc/Automation_Guide.md)。
+- **旧版 1.0（已停止维护）**：编辑 `config/config.json`（Docker 部署时为挂载的 `/app/config/config.json`），在 `template_mapping` 中设置 `library_ch_name`（主标题）和 `library_eng_name`（副标题 / 英文行）；`library_name` 必须与服务器中的媒体库名称一致。例如：
+
+  ```json
+  {
+    "library_name": "电影",
+    "library_ch_name": "电影",
+    "library_eng_name": "MOVIES"
+  }
+  ```
+
+  将此对象放入 `template_mapping` 数组后，重启旧版程序或容器并重新生成封面。此说明仅供历史版本参考，后续请迁移至 v2。
+
 ## 📌 重点提醒
 
 - 背景图基于媒体库第一张海报提取主题色,提取最多 10 个常见颜色
@@ -28,7 +48,7 @@ jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间�
 - 随机颜色会控制在合适的色相、饱和度和明度范围内
 - 创建从左到右的渐变遮罩，左侧深色到右侧浅色的渐变，为前置的电影海报提供良好的衬托
 
-## 最近更新
+## 最后一次代码更新（1.0 已停止维护）
 
 ### 📅 更新日期
 

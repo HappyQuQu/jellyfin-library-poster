@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "本项目 1.0 已停止维护，请迁移至 LibraryCoverStudio v2"
+    url: https://github.com/HappyQuQu/library-cover-studio
+    about: "旧版不再提供功能更新、问题修复或日常维护。请按 v2 文档单独部署并重新配置。"
+  - name: "v2 使用指南（含主标题 / 副标题配置）"
+    url: https://github.com/HappyQuQu/library-cover-studio/blob/main/doc/Automation_Guide.md
+    about: "在自动化任务的“配置封面”步骤中，展开媒体库设置主副标题。"
+  - name: "LibraryCoverStudio v2 问题反馈"
+    url: https://github.com/HappyQuQu/library-cover-studio/issues
+    about: "使用 v2 后如有问题或功能建议，请到新仓库反馈，并附版本、复现步骤和脱敏日志。"
